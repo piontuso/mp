@@ -1,0 +1,136 @@
+<?php
+drupal_load('module', 'diff');
+module_load_include('inc', 'diff', 'diff.pages');
+/**
+ * Implementation of hook_menu().
+ */
+function mp_formtable_menu() {
+  $items = array();
+
+  // A page to demonstrate theming form elements in a table.
+  $items['formtable'] = array(
+    'title' => 'Form Table Example',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mp_formtable_form_table_form'),
+    'access callback' => TRUE,
+  );
+  $items['example'] = array(
+    'title' => 'Example diff',
+    'page callback' => 'mp_formtable_diff_node',
+    'access arguments' => array('access content'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+
+  return $items;
+}
+
+function mp_formtable_diff_node() {
+
+}
+
+/**
+ * Implementation of hook_theme.
+ */
+function mp_formtable_theme() {
+  return array(
+    'mp_formtable_form_table' => array(
+      // The renderable element is the form.
+      'render element' => 'form',
+    ),
+  );
+}
+
+/**
+ * Page Callback / Form Builder for the table form.
+ */
+function mp_formtable_form_table_form($form = array(), &$form_state) {
+  $form['table'] = array(
+    // Theme this part of the form as a table.
+    '#theme' => 'formtable_form_table',
+    // Pass header information to the theme function.
+    '#header' => array(t('Column 1'), t('Column 2'), t('Column 3')),
+    // Rows in the form table.
+    'rows' => array(
+      // Make it a tree for easier traversing of the entered values on submission.
+      '#tree' => TRUE,
+      // First row.
+      'r1' => array(
+        'c1' => array(
+          '#type' => 'textfield',
+          '#title' => t('Row 1 Column 1')
+        ),
+        'c2' => array(
+          '#type' => 'textfield',
+          '#title' => t('Row 1 Column 2'),
+        ),
+        'c3' => array(
+          '#type' => 'textarea',
+          '#title' => t('Row 1 Column 3'),
+        ),
+      ),
+      // Second row.
+      'r2' => array(
+        'c1' => array(
+          '#type' => 'textfield',
+          '#title' => t('Row 2 Column 1')
+        ),
+        'c2' => array(
+          '#type' => 'textfield',
+          '#title' => t('Row 2 Column 2'),
+        ),
+      ),
+    ),
+  );
+
+  // Add a submit button for fun.
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  );
+  $node = node_load(2);
+  $r = node_revision_list($node);
+  $diff = diff_diffs_show($node, 2, 3);
+  print drupal_render($diff);
+
+  return $form;
+}
+
+/**
+ * Theme callback for the form table.
+ */
+function theme_mp_formtable_form_table(&$variables) {
+  // Get the userful values.
+  $form = $variables['form'];
+  $rows = $form['rows'];
+  $header = $form['#header'];
+
+  // Setup the structure to be rendered and returned.
+  $content = array(
+    '#theme' => 'table',
+    '#header' => $header,
+    '#rows' => array(),
+  );
+  $tmp = array(
+    'r1' => array(
+      'c1' => array(
+        '<div>TEST</div>',
+      ),
+    ),
+  );
+  // Traverse each row.  @see element_chidren().
+  foreach (element_children($rows) as $row_index) {
+    $row = array();
+    $row[] = drupal_render(l('test', '/test', array()));
+    // Traverse each column in the row.  @see element_children().
+    foreach (element_children($rows[$row_index]) as $col_index) {
+      // Render the column form element.
+      $row[] = drupal_render($rows[$row_index][$col_index]);
+      $row[] = drupal_render($rows[$row_index][$col_index]);
+    }
+    // Add the row to the table.
+    $content['#rows'][] = $row;
+  }
+
+  // Redner the table and return.
+  return drupal_render($content);
+}
